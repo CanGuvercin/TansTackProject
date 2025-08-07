@@ -1,15 +1,19 @@
 import { useRef, useState } from 'react';
-import {useQuery} from '@tanstack/react-query';
-import { fetchEvents } from '../util/http';
+import { useQuery } from '@tanstack/react-query';
+
+import { fetchEvents } from '../../util/http.js';
+import LoadingIndicator from '../UI/LoadingIndicator.jsx';
 import ErrorBlock from '../UI/ErrorBlock.jsx';
+import EventItem from './EventItem.jsx';
 
 export default function FindEventSection() {
   const searchElement = useRef();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState();
 
-  const {data, isPending, isError, error} = useQuery({
-    queryKey: ['events', {search: searchTerm}],
-    queryFn: () => fetchEvents(searchTerm),
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['events', { search: searchTerm }],
+    queryFn: ({ signal }) => fetchEvents({ signal, searchTerm }),
+    enabled: searchTerm !== undefined
   });
 
   function handleSubmit(event) {
@@ -17,18 +21,21 @@ export default function FindEventSection() {
     setSearchTerm(searchElement.current.value);
   }
 
-  let content = <p>Please enter a search term and to find event</p>;
-  if (isPending) {
-    content = <p>Loading...</p>;
+  let content = <p>Please enter a search term and to find events.</p>;
+
+  if (isLoading) {
+    content = <LoadingIndicator />;
   }
 
   if (isError) {
     content = (
-      <ErrorBlock title="An error" message={error.info?.message || 'Failed to fetch events.'}/>
-
+      <ErrorBlock
+        title="An error occurred"
+        message={error.info?.message || 'Failed to fetch events.'}
+      />
     );
   }
-  
+
   if (data) {
     content = (
       <ul className="events-list">
@@ -40,7 +47,7 @@ export default function FindEventSection() {
       </ul>
     );
   }
-  
+
   return (
     <section className="content-section" id="all-events-section">
       <header>
@@ -54,7 +61,7 @@ export default function FindEventSection() {
           <button>Search</button>
         </form>
       </header>
-      <p>Please enter a search term and to find events.</p>
+      {content}
     </section>
   );
 }
